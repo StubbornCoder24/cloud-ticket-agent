@@ -1,0 +1,5 @@
+# 可选：启用本地 bge 向量与重排模型（不装则自动退回哈希向量/API）。
+# 安装后还需要设置 EMBEDDING_MODEL_PATH、RERANKER_MODEL_PATH 指向模型目录。
+-r requirements.txt
+sentence-transformers>=3,<7
+jieba>=0.42,<1

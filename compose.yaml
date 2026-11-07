@@ -1,0 +1,14 @@
+name: cloud-ticket-agent
+services:
+  projects:
+    build: .
+    ports:
+      - "127.0.0.1:8002:8002"
+    environment:
+      APP_MODE: ${APP_MODE:-demo}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      APP_TOKEN: ${APP_TOKEN:-}
+    volumes:
+      - agent-data:/data
+volumes:
+  agent-data:
