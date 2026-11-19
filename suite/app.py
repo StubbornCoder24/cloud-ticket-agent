@@ -15,9 +15,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from .core import Config, Store, AppError, ROOT
 from .rag import RAG
-from .agent import Agent
+from .agent import Agent, SERVICES, ORDERS
+from .tools import HttpTools, MockTools
 
-# 写接口鉴权：设置了APP_TOKEN才启用；未设置时保持本地开发的开放行为。
+# 工具选型：配置了TOOLS_API_BASE才走真实系统的HttpTools，否则保持本地模拟工具。
+def select_tools(config):
+    base = (getattr(config, 'tools_api_base', '') or '').strip()
+    return HttpTools(base) if base else MockTools(SERVICES, ORDERS)
+
+# 接口鉴权：设置了APP_TOKEN才启用，覆盖写接口、执行记录与反馈；未设置时保持本地开发的开放行为。
 def require_token(x_api_key: str = Header(default='')):
     expected = os.getenv('APP_TOKEN', '')
     if expected and not hmac.compare_digest(x_api_key or '', expected):
@@ -59,7 +65,7 @@ def create_app(config=None, provider_factory=None):
     store = Store(config)
     kwargs = {'provider_factory': provider_factory} if provider_factory else {}
     rag = RAG(store, **kwargs)
-    agent = Agent(store, rag, **kwargs)
+    agent = Agent(store, rag, tools=select_tools(config), **kwargs)
     app = FastAPI(title='云服务工单Agent', version='1.0.0')
     app.state.store, app.state.rag, app.state.agent = (store, rag, agent)
 
@@ -155,13 +161,14 @@ def create_app(config=None, provider_factory=None):
         return agent.decide(session_id, task_id, body.version, body.decision)
 
     # 列出最近执行摘要，供页面定位耗时与失败；原始payload由详情接口按ID读取。
-    @app.get('/api/traces')
+    # 执行记录含完整问答与工具结果，与写接口同级保护：设置APP_TOKEN后同样需要X-API-Key。
+    @app.get('/api/traces', dependencies=[Depends(require_token)])
     def traces():
         with store.db() as db:
             return [dict(row) for row in db.execute('SELECT id,project,session_id,created,status,elapsed_ms FROM traces ORDER BY created DESC LIMIT 100')]
 
     # 按明确trace_id读取原始证据，用于核对参数、工具结果、来源和usage。
-    @app.get('/api/traces/{trace_id}')
+    @app.get('/api/traces/{trace_id}', dependencies=[Depends(require_token)])
     def trace(trace_id: str):
         with store.db() as db:
             row = db.execute('SELECT * FROM traces WHERE id=?', (trace_id,)).fetchone()
@@ -172,7 +179,7 @@ def create_app(config=None, provider_factory=None):
         return result
 
     # 确认执行记录存在再保存评分，保持反馈与实际回答可追溯。
-    @app.post('/api/feedback')
+    @app.post('/api/feedback', dependencies=[Depends(require_token)])
     def feedback(body: Feedback):
         with store.db() as db:
             if not db.execute('SELECT id FROM traces WHERE id=?', (body.trace_id,)).fetchone():

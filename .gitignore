@@ -29,3 +29,7 @@ __pycache__/
 # 评估只保留评测脚本；历史批次和注释备份只留在本机。
 evaluation/*
 !evaluation/eval_agent.py
+
+# Reviewed public evaluation inputs and live evidence.
+!evaluation/live_traces_agent.json
+!evaluation/README.md

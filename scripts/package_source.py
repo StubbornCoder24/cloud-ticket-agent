@@ -14,7 +14,7 @@ EXCLUDED_DIRS = {".deps", ".venv", "env", "venv", ".idea", ".vscode", "node_modu
 # 运行数据按前缀排除：runtime、runtime_live、runtime_eval 都是本机数据库。
 EXCLUDED_PREFIXES = ("runtime",)
 # evaluation 只发布评测入口及可公开的用例。
-EVALUATION_FILES = {"eval_agent.py"}
+EVALUATION_FILES = {'eval_agent.py', 'live_traces_agent.json', 'README.md'}
 # 打包后自检：这些后缀一旦出现说明排除规则失效。
 FORBIDDEN_SUFFIX = (".db", ".db-wal", ".db-shm", ".sqlite", ".sqlite3", ".sqlite3-wal",
                     ".sqlite3-shm", ".log", ".pem", ".key", ".p12", ".pfx", ".pdf", ".docx", ".zip", ".7z")

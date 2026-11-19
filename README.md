@@ -7,7 +7,7 @@
 ## 功能
 
 - 查询模拟服务、订单和工单，支持缺字段追问和补充编号后的继续查询。
-- 检索自带操作知识，返回可点击的来源引用。
+- 检索自带操作知识：混合检索召回后做重排（本地重排模型优先，未配置时 live 用模型排序、demo 用启发式排序），返回可点击的来源引用。
 - 通过 SSE 显示工具执行进度和结果。咨询达到轮数上限时可返回已查到的结果。
 - 草稿支持补字段、保存版本、确认和取消。重复确认返回同一张工单。
 - 会话、任务和执行记录可恢复，容器重启后仍可读取已有工单。
@@ -52,9 +52,10 @@ SQLite 数据保存在 `agent-data` 数据卷，端口默认仅发布到服务�
 | `APP_DATA` | 本机数据目录，建议按运行模式隔离 |
 | `DASHSCOPE_API_KEY`、`MODEL_BASE_URL`、`CHAT_MODEL` | 真实模式的模型服务配置 |
 | `EMBEDDING_MODEL_PATH`、`RERANKER_MODEL_PATH` | 可选的本地知识检索模型，先安装 `requirements-local.txt` |
-| `APP_TOKEN` | 写接口访问口令，设置后在页面右上角填写同一值 |
+| `APP_TOKEN` | 写接口、执行记录与反馈接口的访问口令，设置后在页面右上角填写同一值 |
+| `TOOLS_API_BASE` | 真实业务查询接口基地址，设置后订单/服务查询走 HttpTools，未设置时用本地模拟数据 |
 
-运行真实模式前，将 `APP_MODE` 设为 `live`，配置模型密钥和独立数据目录，再执行 `python seed_demo.py` 和 `python serve.py --mode live`。真实模式用于模型工具选择，默认订单查询与工单仍使用自编模拟数据。
+运行真实模式前，将 `APP_MODE` 设为 `live`，配置模型密钥和独立数据目录，再执行 `python seed_demo.py` 和 `python serve.py --mode live`。真实模式用于模型工具选择，默认订单查询与工单仍使用自编模拟数据；如需让订单/服务查询走真实系统接口，设置 `TOOLS_API_BASE` 指向内部查询服务即可。
 
 ## 验证与维护
 
@@ -67,11 +68,14 @@ python -X utf8 -m scripts.demo
 
 场景评测覆盖缺参追问、草稿、确认、取消和幂等，报告生成在本机。独立端到端验证可运行 `python -X utf8 -m scripts.verify`。重建知识索引用 `python -X utf8 -m scripts.rebuild_index --data ./runtime`，导出源码用 `python -m scripts.package_source`。
 
+真实模型的三项业务场景与证据说明见 [真实模式验证](evaluation/README.md)。
+
 ## 项目结构
 
 - `suite/agent.py` 实现咨询循环和工单状态机，`suite/tools.py` 提供查询工具适配。
 - `suite/rag.py` 实现内部知识检索，`suite/app.py` 提供 FastAPI 与 SSE 接口。
 - `static/` 保存页面，`samples/`、`tests/`、`evaluation/` 保存样例、回归和场景评测。
 - [架构与状态流转](docs/architecture.md) 说明工具调用、人工确认、数据存储和执行约束。
+- [面试讲解](docs/面试讲解.md) 提供 3 分钟讲法与追问预案；[真实调试启动记录](docs/真实调试启动_20261019.md) 是 2026-10-19 一次真实模式调试的过程记录（其引用的原始报告未随仓库提供，不作为评测数据）。
 
 工单数据为模拟业务。接入生产系统前需增加用户身份、数据归属、工具鉴权和外部写入对账。仓库采用 [MIT 许可证](LICENSE)。

@@ -98,6 +98,8 @@ class Config:
     # 未设置或目录不可用时自动退回 API（live）或哈希向量（demo）。
     embedding_path: str = os.getenv("EMBEDDING_MODEL_PATH", "")
     reranker_path: str = os.getenv("RERANKER_MODEL_PATH", "")
+    # 真实业务系统查询接口基地址：设置后 create_app 注入 HttpTools，未设置用本地模拟工具。
+    tools_api_base: str = os.getenv("TOOLS_API_BASE", "")
 
     # 从环境变量构造配置；仅校验取值，不把密钥打印到日志。
     @classmethod
@@ -110,7 +112,8 @@ class Config:
                    os.getenv("MODEL_BASE_URL", cls.base_url),
                    os.getenv("CHAT_MODEL", "qwen-plus"),
                    embedding_path=os.getenv("EMBEDDING_MODEL_PATH", cls.embedding_path),
-                   reranker_path=os.getenv("RERANKER_MODEL_PATH", cls.reranker_path))
+                   reranker_path=os.getenv("RERANKER_MODEL_PATH", cls.reranker_path),
+                   tools_api_base=os.getenv("TOOLS_API_BASE", cls.tools_api_base))
 
 # SQLite持久化入口：建立本项目表结构，并集中管理事务和连接关闭。
 class Store:
